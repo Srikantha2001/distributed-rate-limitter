@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: distributed-rate-limitter
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, info, metrics, thread-dump
