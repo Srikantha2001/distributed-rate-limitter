@@ -1,21 +1,38 @@
 syntax = "proto3";
 
-package io.sriki.ratelimiter;
+package io.sriki.ratelimiter.v1;
 
 option java_multiple_files = true;
 option java_package = "io.sriki.ratelimiter.proto";
 
+// Service for checking whether the request to be allowed or rate-limited
 service RateLimiterService {
-  rpc CheckRateLimit(RateLimitRequest) returns (RateLimitResponse);
+  // Checks atomically,whether requested tokens are available for given (client_id, resource) pair, and
+  // if available consumes them and sets allowed to true. false otherwise
+  //
+  // Errors :
+  // INVALID_ARGUMENT : client_id or resource not sticking to proper format.
+  // UNAVAILABLE : service not reachable
+  rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
 }
 
-message RateLimitRequest {
+message CheckRateLimitRequest {
+  // Required : Identity of the caller : ip / api_key. Must match alphanumeric only [A-Za-z0-9]+. INVALID_ARGUMENT if violated
   string client_id = 1;
-  string resource   = 2;
+
+  // Required:  endpoint/ operation requested , free form but avoid characters(specifically ':')
+  string resource = 2;
+
+  // Optional : number of tokens to be consumed representing the cost. default to 1 if not found or set to 0
+  uint32 tokens = 3;
 }
 
-message RateLimitResponse {
-  bool   allowed        = 1;
-  int64  remaining      = 2;
-  int64  reset_after_ms = 3;
+message CheckRateLimitResponse {
+  // true if the request is allowed and tokens are consumed. false if request is reject and tokens are not consumed
+  bool allowed = 1;
+  // remaining tokens count after the request. even if the request is rejected, this returns the updated count
+  uint64 remaining = 2;
+
+  // represents time after which user need to retry to get success response in ms. 0 if it is already allowed
+  uint64 retry_after_ms = 3;
 }
