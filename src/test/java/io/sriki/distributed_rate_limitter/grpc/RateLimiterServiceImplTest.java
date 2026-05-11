@@ -70,7 +70,7 @@ class RateLimiterServiceImplTest {
     @Test
     void checkRateLimit_deniedResponse_propagatesRetryAfter() {
         when(algorithm.isAllowed(any())).thenReturn(
-            new RateLimiterAlgorithmResponse(false, 0L, 1500L)
+            new RateLimiterAlgorithmResponse(false, 0L, 1500000000L)
         );
 
         service.checkRateLimit(validRequest, responseObserver);
@@ -145,11 +145,14 @@ class RateLimiterServiceImplTest {
             .setResource("res")
             .build();
 
-        assertThatThrownBy(() -> service.checkRateLimit(request, responseObserver))
+        assertThatThrownBy(() ->
+            service.checkRateLimit(request, responseObserver)
+        )
             .isInstanceOf(StatusRuntimeException.class)
             .satisfies(ex ->
-                assertThat(((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.INVALID_ARGUMENT)
+                assertThat(
+                    ((StatusRuntimeException) ex).getStatus().getCode()
+                ).isEqualTo(Status.Code.INVALID_ARGUMENT)
             );
 
         verifyNoInteractions(algorithm);
@@ -164,11 +167,14 @@ class RateLimiterServiceImplTest {
             .setResource("res")
             .build();
 
-        assertThatThrownBy(() -> service.checkRateLimit(request, responseObserver))
+        assertThatThrownBy(() ->
+            service.checkRateLimit(request, responseObserver)
+        )
             .isInstanceOf(StatusRuntimeException.class)
             .satisfies(ex ->
-                assertThat(((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.INVALID_ARGUMENT)
+                assertThat(
+                    ((StatusRuntimeException) ex).getStatus().getCode()
+                ).isEqualTo(Status.Code.INVALID_ARGUMENT)
             );
 
         verifyNoInteractions(algorithm);
@@ -181,11 +187,14 @@ class RateLimiterServiceImplTest {
             .setResource("")
             .build();
 
-        assertThatThrownBy(() -> service.checkRateLimit(request, responseObserver))
+        assertThatThrownBy(() ->
+            service.checkRateLimit(request, responseObserver)
+        )
             .isInstanceOf(StatusRuntimeException.class)
             .satisfies(ex ->
-                assertThat(((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.INVALID_ARGUMENT)
+                assertThat(
+                    ((StatusRuntimeException) ex).getStatus().getCode()
+                ).isEqualTo(Status.Code.INVALID_ARGUMENT)
             );
 
         verifyNoInteractions(algorithm);

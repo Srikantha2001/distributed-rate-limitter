@@ -42,8 +42,10 @@ public class RateLimiterServiceImpl
         );
         CheckRateLimitResponse response = CheckRateLimitResponse.newBuilder()
             .setAllowed(algorithmResponse.allowed())
-            .setRemaining(algorithmResponse.remainingToken())
-            .setRetryAfterMs(algorithmResponse.retryAfterMs())
+            .setRemaining((long) algorithmResponse.remainingToken())
+            .setRetryAfterMs(
+                (long) (algorithmResponse.retryAfterNanos() / Math.pow(10, 6))
+            )
             .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
