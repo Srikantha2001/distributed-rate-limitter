@@ -1,4 +1,4 @@
 token:
   bucket:
-    bucketCapacity: 100
-    refillRatePerSecond: 10
+    bucket-capacity: 100
+    refill-rate-per-second: 10

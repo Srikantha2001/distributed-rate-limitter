@@ -9,5 +9,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 public class TokenBucketConfigurationProperties {
     private int bucketCapacity=10;
-    private int refillRatePerSecond=1;
+    private double refillRatePerSecond=1.0;
 }

@@ -51,7 +51,7 @@ public class RateLimiterServiceImpl
         responseObserver.onCompleted();
     }
 
-    public void validate(CheckRateLimitRequest request) {
+     private void validate(CheckRateLimitRequest request) {
         log.info("validating the incoming request : {}", request);
         if (request.getClientId().isEmpty()) {
             throw Status.INVALID_ARGUMENT.withDescription(

@@ -28,8 +28,8 @@ public class TokenBucketImplementation implements RateLimiterAlgorithm {
             RateLimiterAlgorithmRequest request
     ) {
         int bucketCapacity = tokenBucketConfigurationProperties.getBucketCapacity();
-        int refillRate = tokenBucketConfigurationProperties.getRefillRatePerSecond();
-        log.info("Received request for key : {}, required tokens : {}", request.key(), request.tokensRequired());
+        double refillRate = tokenBucketConfigurationProperties.getRefillRatePerSecond();
+        log.debug("Received request for key : {}, required tokens : {}", request.key(), request.tokensRequired());
 
         BucketCheckResult result = bucketStateStore.tryConsume(
                 request.key(),
@@ -39,7 +39,7 @@ public class TokenBucketImplementation implements RateLimiterAlgorithm {
         );
 
         if (result.allowed()) {
-            log.info("Request allowed for key : {}, remaining tokens : {}", request.key(), result.remaining());
+            log.debug("Request allowed for key : {}, remaining tokens : {}", request.key(), result.remaining());
             return new RateLimiterAlgorithmResponse(
                     true,
                     result.remaining(),
@@ -47,7 +47,7 @@ public class TokenBucketImplementation implements RateLimiterAlgorithm {
             );
         } else {
             long retryAfterMs = getRetryAfterTimeInMs(result.remaining(), request.tokensRequired(), refillRate);
-            log.info("Request denied for key : {}, remaining tokens : {}, retry after (ms) : {}", request.key(), result.remaining(), retryAfterMs);
+            log.debug("Request denied for key : {}, remaining tokens : {}, retry after (ms) : {}", request.key(), result.remaining(), retryAfterMs);
             return new RateLimiterAlgorithmResponse(
                     false,
                     result.remaining(),
@@ -59,9 +59,9 @@ public class TokenBucketImplementation implements RateLimiterAlgorithm {
     private long getRetryAfterTimeInMs(
             double currentTokens,
             double requiredTokens,
-            long refill_rate
+            double refill_rate
     ) {
-        return (long) (((requiredTokens - currentTokens) * Math.pow(10, 3)) /
+        return (long) Math.ceil(((requiredTokens - currentTokens) * 1000) /
                 refill_rate);
     }
 }
