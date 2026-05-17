@@ -70,7 +70,7 @@ class RateLimiterServiceImplTest {
     @Test
     void checkRateLimit_deniedResponse_propagatesRetryAfter() {
         when(algorithm.isAllowed(any())).thenReturn(
-            new RateLimiterAlgorithmResponse(false, 0L, 1500000000L)
+            new RateLimiterAlgorithmResponse(false, 0L, 1500L)
         );
 
         service.checkRateLimit(validRequest, responseObserver);

@@ -31,19 +31,27 @@ Proto sources are generated automatically during the build by `protobuf-maven-pl
 
 ## Architecture
 
-A **Spring Boot gRPC server** that implements a distributed rate limiter. Currently a single-node skeleton; Redis-backed shared state and real algorithms are planned. See `docs/architecture.md` for the intended design before making structural changes.
+A **Spring Boot gRPC server** that implements a distributed rate limiter. Currently single-node with an in-memory store; Redis-backed shared state is planned. See `docs/architecture.md` for the intended design before making structural changes.
 
-**Layers:**
+**Layers (request flows top-to-bottom):**
 
-- `src/main/proto/rate_limiter.proto` — gRPC contract. Proto package `io.sriki.ratelimiter.v1`; generated Java lands in `io.sriki.ratelimiter.proto` (note: the proto package and the Java package are deliberately different).
-- `grpc/RateLimiterServiceImpl` — `@GrpcService` extending the generated `RateLimiterServiceGrpc.RateLimiterServiceImplBase`. **Currently returns a hardcoded stub response (`allowed=true, remaining=100`) — this is intentional for v0.0.1, not a bug.** Real logic lands here as algorithms are added.
-- `algorithm/RateLimiterAlgorithm` — strategy interface (`isAllowed(clientId, resource) → boolean`) for pluggable algorithms (token bucket, sliding window, …). Defined but not yet wired into the service impl.
+- `src/main/proto/rate_limiter.proto` — gRPC contract. Proto package `io.sriki.ratelimiter.v1`; generated Java lands in `io.sriki.ratelimiter.proto` (the proto package and the Java package are deliberately different).
+- `grpc/RateLimiterServiceImpl` — `@GrpcService` extending the generated `RateLimiterServiceGrpc.RateLimiterServiceImplBase`. Validates the request (`clientId` non-empty + alphanumeric; `resource` non-empty), builds the storage key as `clientId:resource`, defaults `tokens` to `1` if `< 1`, and delegates to a `RateLimiterAlgorithm`. Maps the algorithm response (allowed / remaining / retryAfterMs) into `CheckRateLimitResponse`. Invalid input is surfaced as `Status.INVALID_ARGUMENT`.
+- `algorithm/RateLimiterAlgorithm` — strategy interface (`isAllowed(RateLimiterAlgorithmRequest) → RateLimiterAlgorithmResponse`) for pluggable algorithms.
+- `algorithm/impl/TokenBucketImplementation` — current `@Service` impl. Reads `bucketCapacity` / `refillRatePerSecond` from `TokenBucketConfigurationProperties`, delegates the actual consume to the injected `BucketStateStore` (qualifier `inMemoryBucketStateStore`), and on denial computes `retryAfterMs = (tokensRequired - remaining) * 1000 / refillRate`.
+- `storage/BucketStateStore` — storage abstraction with a single `tryConsume(key, tokens, capacity, refillRate) → BucketCheckResult` method. This is the seam where Redis will plug in.
+- `storage/impl/InMemoryBucketStateStore` — `ConcurrentHashMap<String, BucketState>` keyed by storage key. Each bucket is updated under `synchronized (bucket)`; lazy refill is computed from `System.nanoTime()` deltas and capped at `capacity`. New keys start at full capacity.
+
+**Models** (all under `model/`): `RateLimiterAlgorithmRequest` (record: `key`, `tokensRequired`), `RateLimiterAlgorithmResponse` (record: `allowed`, `remainingToken`, `retryAfterMs`), `BucketCheckResult` (record: `allowed`, `remaining`), `BucketState` (mutable POJO holding `remainingToken` + `lastRefillTimestampInNanos` — guarded by `synchronized` on the instance in the in-memory store).
 
 **Note on package naming:** the application code lives under `io.sriki.distributed_rate_limitter` (with the typo+underscore preserved across the codebase). The proto-generated code is under `io.sriki.ratelimiter.proto`. Search both when looking for symbols.
 
 **Ports:**
 - gRPC server: `9090` (HTTP/2 only — do not send HTTP/1.x requests here)
 - Actuator/metrics: `8080` (HTTP/1.1; `application.yaml` exposes `health, prometheus, info, metrics, thread-dump`)
+
+**Configuration** (`application.yaml`):
+- `token.bucket.bucketCapacity` (default `100`) and `token.bucket.refillRatePerSecond` (default `10`) — bound to `TokenBucketConfigurationProperties`. Tests under `src/test/resources/application-test.yaml` may override these; activate with `@ActiveProfiles("test")`.
 
 **Dependencies of note:**
 - `spring-boot-starter-grpc-server` — Spring Boot 4.x native gRPC support

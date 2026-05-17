@@ -8,20 +8,20 @@ import io.sriki.distributed_rate_limitter.model.RateLimiterAlgorithmResponse;
 import io.sriki.ratelimiter.proto.CheckRateLimitRequest;
 import io.sriki.ratelimiter.proto.CheckRateLimitResponse;
 import io.sriki.ratelimiter.proto.RateLimiterServiceGrpc;
-import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.service.GrpcService;
+
+import java.util.regex.Pattern;
 
 @GrpcService
 @Slf4j
 public class RateLimiterServiceImpl
-    extends RateLimiterServiceGrpc.RateLimiterServiceImplBase
-{
+        extends RateLimiterServiceGrpc.RateLimiterServiceImplBase {
 
-    private final RateLimiterAlgorithm algorithm;
     private static final Pattern CLIENT_ID_PATTERN = Pattern.compile(
-        "^[A-Za-z0-9]+$"
+            "^[A-Za-z0-9]+$"
     );
+    private final RateLimiterAlgorithm algorithm;
 
     public RateLimiterServiceImpl(RateLimiterAlgorithm algorithm) {
         this.algorithm = algorithm;
@@ -29,24 +29,24 @@ public class RateLimiterServiceImpl
 
     @Override
     public void checkRateLimit(
-        CheckRateLimitRequest request,
-        StreamObserver<CheckRateLimitResponse> responseObserver
+            CheckRateLimitRequest request,
+            StreamObserver<CheckRateLimitResponse> responseObserver
     ) {
         validate(request);
         String storageKey = request.getClientId() + ':' + request.getResource();
         int tokens = request.getTokens() >= 1 ? request.getTokens() : 1;
         RateLimiterAlgorithmRequest algorithmRequest =
-            new RateLimiterAlgorithmRequest(storageKey, tokens);
+                new RateLimiterAlgorithmRequest(storageKey, tokens);
         RateLimiterAlgorithmResponse algorithmResponse = algorithm.isAllowed(
-            algorithmRequest
+                algorithmRequest
         );
         CheckRateLimitResponse response = CheckRateLimitResponse.newBuilder()
-            .setAllowed(algorithmResponse.allowed())
-            .setRemaining((long) algorithmResponse.remainingToken())
-            .setRetryAfterMs(
-                (long) (algorithmResponse.retryAfterNanos() / Math.pow(10, 6))
-            )
-            .build();
+                .setAllowed(algorithmResponse.allowed())
+                .setRemaining((long) algorithmResponse.remainingToken())
+                .setRetryAfterMs(
+                        algorithmResponse.retryAfterMs()
+                )
+                .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
@@ -55,17 +55,17 @@ public class RateLimiterServiceImpl
         log.info("validating the incoming request : {}", request);
         if (request.getClientId().isEmpty()) {
             throw Status.INVALID_ARGUMENT.withDescription(
-                "Client Id should be present and non-empty"
+                    "Client Id should be present and non-empty"
             ).asRuntimeException();
         }
         if (!CLIENT_ID_PATTERN.matcher(request.getClientId()).matches()) {
             throw Status.INVALID_ARGUMENT.withDescription(
-                "Client Id should be alphanumeric only"
+                    "Client Id should be alphanumeric only"
             ).asRuntimeException();
         }
         if (request.getResource().isEmpty()) {
             throw Status.INVALID_ARGUMENT.withDescription(
-                "Resource should be present and non-empty"
+                    "Resource should be present and non-empty"
             ).asRuntimeException();
         }
     }
