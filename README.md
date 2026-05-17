@@ -16,8 +16,8 @@ Rate limiting is one of the most universally-needed primitives in backend system
 - ✅ gRPC service skeleton (`CheckLimit` RPC)
 - ✅ Spring Boot app boots, exposes `/actuator/health` and `/actuator/prometheus`
 - ✅ CI runs `mvn verify` on every push
-- ⏳ Token bucket algorithm (next)
-- ⏳ Redis-backed distributed state
+- ✅ Token bucket algorithm 
+- ⏳ Redis-backed distributed state (next)
 - ⏳ Sliding window algorithm
 - ⏳ Graceful degradation when Redis is unreachable
 - ⏳ Benchmarks
@@ -29,7 +29,7 @@ Rate limiting is one of the most universally-needed primitives in backend system
 mvn spring-boot:run
 
 # In another terminal — verify gRPC server is up
-grpcurl -d '{"client_id":"id1", "resource":"r1"}' -plaintext localhost:9090 io.sriki.ratelimiter.RateLimiterService.CheckRateLimit
+grpcurl -d '{"client_id":"id1", "resource":"r1", "tokens":3}' -plaintext localhost:9090 io.sriki.ratelimiter.RateLimiterService.CheckRateLimit
 # → { "allowed": true, "remaining": "100", "reset_after_ms": "1000"}(currently hardcoded)
 
 # Metrics
@@ -78,9 +78,9 @@ See [docs/architecture.md](docs/architecture.md). Note: this is an evolving desi
 
 ## Roadmap
 
-| Version | Scope |
-|---------|-------|
-| v0.0.1  | Runnable skeleton, hardcoded response (current) |
-| v0.1    | Token bucket, in-memory, single-node |
-| v0.5    | Redis-backed, multi-node, basic observability |
+| Version | Scope                                                                             |
+|---------|-----------------------------------------------------------------------------------|
+| v0.0.1  | Runnable skeleton, hardcoded response                                             |
+| v0.1    | Token bucket, in-memory, single-node (current)|                                    |
+| v0.5    | Redis-backed, multi-node, basic observability                                     |
 | v1.0    | Sliding window option, distributed coordination, benchmarks, graceful degradation |

@@ -1,5 +1,10 @@
 package io.sriki.distributed_rate_limitter.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public final class BucketState {
 
     private double remainingToken;
@@ -10,19 +15,4 @@ public final class BucketState {
         this.lastRefillTimestampInNanos = lastRefillTimestampInNanos;
     }
 
-    public void setRemainingToken(double remainingToken) {
-        this.remainingToken = remainingToken;
-    }
-
-    public double getRemainingToken() {
-        return this.remainingToken;
-    }
-
-    public void setLastRefillTimestampInNanos(long lastRefillTimestampInNanos) {
-        this.lastRefillTimestampInNanos = lastRefillTimestampInNanos;
-    }
-
-    public long getLastRefillTimestampInNanos() {
-        return this.lastRefillTimestampInNanos;
-    }
 }

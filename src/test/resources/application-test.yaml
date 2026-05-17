@@ -1,0 +1,4 @@
+token:
+  bucket:
+    bucketCapacity: 100
+    refillRatePerSecond: 10
