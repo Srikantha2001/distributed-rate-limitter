@@ -5,7 +5,7 @@
 A gRPC-based distributed rate limiter built on Java 21 (virtual threads), Spring Boot, and Redis. 
 Pluggable algorithms, observable, designed to fail gracefully.
 
-> **Status: Early development.** Currently runs as an in-memory, single-node rate limiter using the Token Bucket algorithm. Redis-backed shared state is coming in v0.5.
+> **Status: Early development.** Token bucket rate limiter with pluggable storage. In-memory mode works out of the box; Redis-backed distributed state is available behind a Spring profile.
 
 ## Why this project
 
@@ -15,9 +15,9 @@ Rate limiting is one of the most universally-needed primitives in backend system
 
 - ✅ gRPC service skeleton (`CheckLimit` RPC)
 - ✅ Spring Boot app boots, exposes `/actuator/health` and `/actuator/prometheus`
-- ✅ CI runs `mvn verify` on every push
+- ✅ CI runs `mvn verify` on every push, plus Redis integration tests
 - ✅ Token bucket algorithm (in-memory, single-node)
-- ⏳ Redis-backed distributed state (next)
+- ✅ Redis-backed distributed state (opt-in via `redis` profile)
 - ⏳ Sliding window algorithm
 - ⏳ Graceful degradation when Redis is unreachable
 - ⏳ Benchmarks
@@ -25,16 +25,28 @@ Rate limiting is one of the most universally-needed primitives in backend system
 ## Quick start
 
 ```bash
-# Requires Java 21+ and Maven 3.9+
+# Requires Java 25+ and Maven 3.9+
 mvn spring-boot:run
 
 # In another terminal — verify gRPC server is up
-grpcurl -d '{"client_id":"id1", "resource":"r1", "tokens":3}' -plaintext localhost:9090 io.sriki.ratelimiter.RateLimiterService.CheckRateLimit
+grpcurl -d '{"client_id":"id1", "resource":"r1", "tokens":3}' -plaintext localhost:9090 io.sriki.ratelimiter.v1.RateLimiterService.CheckRateLimit
 # → { "allowed": true, "remaining": "97" }
 
 # Metrics
 curl localhost:8080/actuator/prometheus | grep ratelimiter
 ```
+
+## Running with Redis
+
+```bash
+# Start Redis (Docker Compose profile)
+docker compose --profile redis up -d
+
+# Run the application with the redis profile
+mvn spring-boot:run -Dspring-boot.run.profiles=redis
+```
+
+In `redis` profile the application uses a Redis-backed token bucket implemented with a Lua script for atomic consume/refill operations. The Redis health indicator is active only in this profile.
 
 ## API
 
@@ -74,13 +86,23 @@ message CheckRateLimitResponse {
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md). Note: this is an evolving design — current implementation is a single-node stub.
+See [docs/architecture.md](docs/architecture.md). Note: this is an evolving design — current implementation supports both single-node in-memory and Redis-backed modes.
+
+## Testing
+
+```bash
+# Run the non-Docker test suite
+mvn test
+
+# Run Redis-backed integration tests (requires Docker)
+mvn test -Dtest=RedisBucketStateStoreTest -Ddocker.enabled=true
+```
 
 ## Roadmap
 
 | Version | Scope                                                                             |
 |---------|-----------------------------------------------------------------------------------|
 | v0.0.1  | Runnable skeleton, hardcoded response                                             |
-| v0.1    | Token bucket, in-memory, single-node (current)                                    |
-| v0.5    | Redis-backed, multi-node, basic observability                                     |
+| v0.1    | Token bucket, in-memory + Redis-backed via profile (current)                      |
+| v0.5    | Multi-node validation, basic observability                                        |
 | v1.0    | Sliding window option, distributed coordination, benchmarks, graceful degradation |
