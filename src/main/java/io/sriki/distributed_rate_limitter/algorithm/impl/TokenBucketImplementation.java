@@ -7,7 +7,6 @@ import io.sriki.distributed_rate_limitter.model.RateLimiterAlgorithmRequest;
 import io.sriki.distributed_rate_limitter.model.RateLimiterAlgorithmResponse;
 import io.sriki.distributed_rate_limitter.storage.BucketStateStore;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,7 +17,7 @@ public class TokenBucketImplementation implements RateLimiterAlgorithm {
     private final BucketStateStore bucketStateStore;
 
     public TokenBucketImplementation(TokenBucketConfigurationProperties tokenBucketConfigurationProperties,
-                                     @Qualifier("inMemoryBucketStateStore") BucketStateStore bucketStateStore) {
+                                      BucketStateStore bucketStateStore) {
         this.tokenBucketConfigurationProperties = tokenBucketConfigurationProperties;
         this.bucketStateStore = bucketStateStore;
     }

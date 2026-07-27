@@ -22,3 +22,6 @@ jobs:
 
       - name: Build and test
         run: mvn -B verify
+
+      - name: Run Redis integration tests
+        run: mvn -B test -Dtest=RedisBucketStateStoreTest -Ddocker.enabled=true

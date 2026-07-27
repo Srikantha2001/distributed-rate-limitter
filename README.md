@@ -5,18 +5,18 @@
 A gRPC-based distributed rate limiter built on Java 21 (virtual threads), Spring Boot, and Redis. 
 Pluggable algorithms, observable, designed to fail gracefully.
 
-> **Status: Early development.** Currently runs as a single-node skeleton with a hardcoded response. Token bucket + Redis-backed shared state coming in v0.5.
+> **Status: Early development.** Currently runs as an in-memory, single-node rate limiter using the Token Bucket algorithm. Redis-backed shared state is coming in v0.5.
 
 ## Why this project
 
 Rate limiting is one of the most universally-needed primitives in backend systems, and a small but rich slice of distributed systems engineering — touching atomicity, concurrency, network IPC, and graceful degradation. I'm building this both to deepen my distributed-systems intuition and to have a working artifact behind the concepts I work with day-to-day.
 
-## Current state (v0.0.1)
+## Current state (v0.1)
 
 - ✅ gRPC service skeleton (`CheckLimit` RPC)
 - ✅ Spring Boot app boots, exposes `/actuator/health` and `/actuator/prometheus`
 - ✅ CI runs `mvn verify` on every push
-- ✅ Token bucket algorithm 
+- ✅ Token bucket algorithm (in-memory, single-node)
 - ⏳ Redis-backed distributed state (next)
 - ⏳ Sliding window algorithm
 - ⏳ Graceful degradation when Redis is unreachable
@@ -30,7 +30,7 @@ mvn spring-boot:run
 
 # In another terminal — verify gRPC server is up
 grpcurl -d '{"client_id":"id1", "resource":"r1", "tokens":3}' -plaintext localhost:9090 io.sriki.ratelimiter.RateLimiterService.CheckRateLimit
-# → { "allowed": true, "remaining": "100", "reset_after_ms": "1000"}(currently hardcoded)
+# → { "allowed": true, "remaining": "97" }
 
 # Metrics
 curl localhost:8080/actuator/prometheus | grep ratelimiter
@@ -81,6 +81,6 @@ See [docs/architecture.md](docs/architecture.md). Note: this is an evolving desi
 | Version | Scope                                                                             |
 |---------|-----------------------------------------------------------------------------------|
 | v0.0.1  | Runnable skeleton, hardcoded response                                             |
-| v0.1    | Token bucket, in-memory, single-node (current)|                                    |
+| v0.1    | Token bucket, in-memory, single-node (current)                                    |
 | v0.5    | Redis-backed, multi-node, basic observability                                     |
 | v1.0    | Sliding window option, distributed coordination, benchmarks, graceful degradation |

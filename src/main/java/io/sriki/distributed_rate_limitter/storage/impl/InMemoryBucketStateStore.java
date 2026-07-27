@@ -4,11 +4,13 @@ import io.sriki.distributed_rate_limitter.model.BucketCheckResult;
 import io.sriki.distributed_rate_limitter.model.BucketState;
 import io.sriki.distributed_rate_limitter.storage.BucketStateStore;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@Profile("!redis")
 @Slf4j
 public class InMemoryBucketStateStore implements BucketStateStore {
 

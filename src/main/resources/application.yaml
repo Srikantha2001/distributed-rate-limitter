@@ -1,6 +1,10 @@
 spring:
   application:
     name: distributed-rate-limitter
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
   port: 8080
@@ -12,7 +16,27 @@ token:
 management:
   server:
     port: 8080
+  health:
+    redis:
+      enabled: false
   endpoints:
     web:
       exposure:
         include: health, prometheus, info, metrics, thread-dump
+
+---
+spring:
+  config:
+    activate:
+      on-profile: redis
+
+  docker:
+    compose:
+      enabled: true
+      profiles:
+        active: "redis"
+
+management:
+  health:
+    redis:
+      enabled: true
