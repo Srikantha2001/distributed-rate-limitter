@@ -2,3 +2,18 @@ token:
   bucket:
     bucket-capacity: 100
     refill-rate-per-second: 10
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: test-sliding-window
+
+rate-limiter:
+  algorithm: sliding-window
+
+sliding:
+  window:
+    window-size-in-seconds: 1
+    max-requests: 5

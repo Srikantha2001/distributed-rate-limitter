@@ -9,10 +9,18 @@ spring:
 server:
   port: 8080
 
+rate-limiter:
+  algorithm: token-bucket
+
 token:
   bucket:
     bucket-capacity: 100
     refill-rate-per-second: 10
+
+sliding:
+  window:
+    window-size-in-seconds: 60
+    max-requests: 100
 management:
   server:
     port: 8080

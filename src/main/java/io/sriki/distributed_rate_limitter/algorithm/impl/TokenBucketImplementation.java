@@ -7,9 +7,11 @@ import io.sriki.distributed_rate_limitter.model.RateLimiterAlgorithmRequest;
 import io.sriki.distributed_rate_limitter.model.RateLimiterAlgorithmResponse;
 import io.sriki.distributed_rate_limitter.storage.BucketStateStore;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 @Service
+@ConditionalOnProperty(name = "rate-limiter.algorithm", havingValue = "token-bucket", matchIfMissing = true)
 @Slf4j
 public class TokenBucketImplementation implements RateLimiterAlgorithm {
 

@@ -2,23 +2,24 @@
 
 # Distributed-Rate-Limiter
 
-A gRPC-based distributed rate limiter built on Java 21 (virtual threads), Spring Boot, and Redis. 
+A gRPC-based distributed rate limiter built on Java 25 (virtual threads), Spring Boot, and Redis.
 Pluggable algorithms, observable, designed to fail gracefully.
 
-> **Status: Early development.** Token bucket rate limiter with pluggable storage. In-memory mode works out of the box; Redis-backed distributed state is available behind a Spring profile.
+> **Status: Early development.** Pluggable rate-limiting algorithms (token bucket, sliding window) with pluggable storage. In-memory mode works out of the box; Redis-backed distributed state is available behind a Spring profile.
 
 ## Why this project
 
 Rate limiting is one of the most universally-needed primitives in backend systems, and a small but rich slice of distributed systems engineering — touching atomicity, concurrency, network IPC, and graceful degradation. I'm building this both to deepen my distributed-systems intuition and to have a working artifact behind the concepts I work with day-to-day.
 
-## Current state (v0.1)
+## Current state (v0.2)
 
-- ✅ gRPC service skeleton (`CheckLimit` RPC)
+- ✅ gRPC service skeleton (`CheckRateLimit` RPC)
 - ✅ Spring Boot app boots, exposes `/actuator/health` and `/actuator/prometheus`
 - ✅ CI runs `mvn verify` on every push, plus Redis integration tests
-- ✅ Token bucket algorithm (in-memory, single-node)
+- ✅ Pluggable algorithm selection via the `rate-limiter.algorithm` property
+- ✅ Token bucket algorithm (default) — in-memory + Redis-backed
+- ✅ Sliding-window algorithm — in-memory + Redis-backed
 - ✅ Redis-backed distributed state (opt-in via `redis` profile)
-- ⏳ Sliding window algorithm
 - ⏳ Graceful degradation when Redis is unreachable
 - ⏳ Benchmarks
 
@@ -27,6 +28,8 @@ Rate limiting is one of the most universally-needed primitives in backend system
 ```bash
 # Requires Java 25+ and Maven 3.9+
 mvn spring-boot:run
+# Default algorithm is token bucket. Switch algorithms with
+# -Drate-limiter.algorithm=sliding-window (see Configuration below).
 
 # In another terminal — verify gRPC server is up
 grpcurl -d '{"client_id":"id1", "resource":"r1", "tokens":3}' -plaintext localhost:9090 io.sriki.ratelimiter.v1.RateLimiterService.CheckRateLimit
@@ -46,7 +49,35 @@ docker compose --profile redis up -d
 mvn spring-boot:run -Dspring-boot.run.profiles=redis
 ```
 
-In `redis` profile the application uses a Redis-backed token bucket implemented with a Lua script for atomic consume/refill operations. The Redis health indicator is active only in this profile.
+In `redis` profile the application uses Redis-backed stores implemented with Lua scripts for atomic consume/refill operations (`lua/token_bucket.lua`, `lua/sliding_window.lua`). The Redis health indicator is active only in this profile. Algorithm and storage selection are independent — e.g. `sliding-window` + `redis` runs the sliding-window algorithm against the Redis sorted-set store.
+
+## Configuration
+
+Algorithm and storage are chosen separately, so any algorithm works with either store:
+
+| Property | Default | Values |
+|----------|---------|--------|
+| `rate-limiter.algorithm` | `token-bucket` | `token-bucket` \| `sliding-window` |
+| `token.bucket.bucket-capacity` | `100` | Token bucket max capacity |
+| `token.bucket.refill-rate-per-second` | `10` | Tokens added per second |
+| `sliding.window.window-size-in-seconds` | `60` | Sliding window length |
+| `sliding.window.max-requests` | `100` | Max requests allowed per window |
+
+Storage is in-memory by default; pass the `redis` profile to use the Redis-backed stores. Common combinations:
+
+```bash
+# Token bucket, in-memory (default)
+mvn spring-boot:run
+
+# Sliding window, in-memory
+mvn spring-boot:run -Drate-limiter.algorithm=sliding-window
+
+# Token bucket, Redis
+mvn spring-boot:run -Dspring-boot.run.profiles=redis
+
+# Sliding window, Redis
+mvn spring-boot:run -Dspring-boot.run.profiles=redis -Drate-limiter.algorithm=sliding-window
+```
 
 ## API
 
@@ -86,23 +117,27 @@ message CheckRateLimitResponse {
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md). Note: this is an evolving design — current implementation supports both single-node in-memory and Redis-backed modes.
+See [docs/architecture.md](docs/architecture.md). Note: this is an evolving design — the current implementation supports both token-bucket and sliding-window algorithms, each in single-node in-memory and Redis-backed modes.
 
 ## Testing
 
 ```bash
-# Run the non-Docker test suite
+# Run the non-Docker test suite (token bucket + sliding window unit/store/context tests)
 mvn test
 
-# Run Redis-backed integration tests (requires Docker)
+# Run Redis-backed token bucket integration tests (requires Docker)
 mvn test -Dtest=RedisBucketStateStoreTest -Ddocker.enabled=true
+
+# Run Redis-backed sliding window integration tests (requires Docker)
+mvn test -Dtest=RedisSlidingWindowStateStoreTest -Ddocker.enabled=true
 ```
 
 ## Roadmap
 
-| Version | Scope                                                                             |
-|---------|-----------------------------------------------------------------------------------|
-| v0.0.1  | Runnable skeleton, hardcoded response                                             |
-| v0.1    | Token bucket, in-memory + Redis-backed via profile (current)                      |
-| v0.5    | Multi-node validation, basic observability                                        |
-| v1.0    | Sliding window option, distributed coordination, benchmarks, graceful degradation |
+| Version | Scope                                                          |
+|---------|----------------------------------------------------------------|
+| v0.0.1  | Runnable skeleton, hardcoded response                          |
+| v0.1    | Token bucket, in-memory + Redis-backed via profile             |
+| v0.2    | Sliding-window algorithm, in-memory + Redis-backed (current)   |
+| v0.5    | Multi-node validation, basic observability                     |
+| v1.0    | Distributed coordination, benchmarks, graceful degradation     |
